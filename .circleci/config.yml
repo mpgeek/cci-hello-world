@@ -1,14 +1,46 @@
-version: 2.1
-orbs:
-  node: circleci/node@4.7.0
+version: 2
+
+# we now have TWO jobs, so that a workflow can coordinate them!
 jobs:
-  build:
-    executor:
-      name: node/default
-      tag: '10.4'
+
+  # This is our first job.
+  one:
+    # it uses the docker executor
+    docker:
+      # specifically, a docker image with ruby 2.6.8
+      - image: cimg/ruby:2.6.8
+        auth:
+          username: mydockerhub-user
+          # context / project UI env-var reference
+          password: $DOCKERHUB_PASSWORD
+
+    # Steps are a list of commands to run inside the docker container above.
+    steps:
+      # this pulls code down from GitHub
+      - checkout
+      # This prints "A first hello" to stdout.
+      - run: echo "A first hello"
+      # a command telling the job to "sleep" for 25 seconds.
+      - run: sleep 25
+
+  # This is our second job.
+  two:
+    docker:
+      - image: cimg/ruby:3.0.2
+        auth:
+          username: mydockerhub-user
+          password: $DOCKERHUB_PASSWORD
     steps:
       - checkout
-      - node/with-cache:
-          steps:
-            - run: npm install
-      - run: npm run test
+      - run: echo "A more familiar hi"
+      - run: sleep 15
+
+# Under the workflows: map, we can coordinate our two jobs, defined above.
+workflows:
+  version: 2
+  # this is the name of our workflow
+  one_and_two:
+    # and here we list the jobs we are going to run.
+    jobs:
+      - one
+      - two
